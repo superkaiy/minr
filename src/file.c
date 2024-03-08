@@ -27,8 +27,8 @@
   */
 
 #include <sys/stat.h>
-#include <openssl/md5.h>
 #include <stdlib.h>
+#include <ftw.h>
 #include <string.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -176,6 +176,19 @@ FILE **open_file (char *mined_path, char * set_name)
 	return out;
 }
 
+int append_to_csv_file(char *mined_path, char * set_name, int sector, char * line)
+{
+	if (!line)
+		return 0;
+	char path[MAX_PATH_LEN] = "\0";
+	snprintf(path, MAX_PATH_LEN, "%s/%s/%02x.csv", mined_path, set_name, sector);
+	FILE * f = fopen(path, "a");
+	fputs(line, f);
+	fclose(f);
+	return 0;
+
+}
+
 
 /**
  * @brief Open 256 "snippet" descriptors
@@ -253,4 +266,28 @@ bool check_disk_free(char *file, uint64_t needed)
 		return false;
 	}
 	return true;
+}
+
+
+int remove_callback(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf) {
+    int rv = remove(fpath);
+
+    if (rv == -1) {
+        perror("Error removing file or directory");
+    }
+
+    close(ftwbuf->base);
+    return rv;
+}
+
+void rm_dir(char *path) {
+
+    if (path == NULL || path[0] == '\0') {
+        return;
+    }
+
+    // Execute command using nftw
+    if (nftw(path, remove_callback, 1, FTW_DEPTH | FTW_PHYS) == -1) {
+        perror("Error removing a directory");
+    }
 }

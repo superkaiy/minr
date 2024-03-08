@@ -30,7 +30,7 @@
 
 #include "license.h"
 #include "scancode.h"
-
+#include "file.h"
 #define TMP_DIR "/tmp/minr"
 
 /**
@@ -57,13 +57,10 @@ bool scancode_prepare_tmp_dir(char *id)
  */
 bool scancode_remove_tmp_dir(char *id)
 {
-    FILE *sc_file;
-    char *command;
-    asprintf(&command, "rm -r -f %s/%s", TMP_DIR, id); // create tmp or erase content
-    sc_file = popen(command, "r");
-
-    fclose(sc_file);
-    free(command);
+    char *path;
+    asprintf(&path, "%s/%s", TMP_DIR, id); // create tmp or erase content
+    rm_dir(path);
+    free(path);
     return true;
 }
 
@@ -96,7 +93,7 @@ bool scancode_run(char *id, char *csv_file)
     /* execute scancode, process the json output, and erase tmp */
     if (csv_file)
         asprintf(&command, "scancode -cl --quiet -n 6 --timeout 2 --json %s/%s/scancode.json %s/%s  2> scancode_error.txt &&\
-	 	    				jq -r '.files[] | \"\\(.path),5,\\(.licenses[].spdx_license_key)\"' %s/%s/scancode.json | sort -u | sed 's/\\/[^:/:,]*,/,/g' 1>> %s",
+	 	    				jq -r '.files[] | \"\\(.path),5,\\(.detected_license_expression_spdx)\"' %s/%s/scancode.json | sort -u | grep -v ',null$' | sed 's/\\/[^:/:,]*,/,/g' 1>> %s",
                  TMP_DIR, id, TMP_DIR, id, TMP_DIR, id, csv_file);
 
     FILE *sc_file = popen(command, "r");

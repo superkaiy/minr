@@ -27,7 +27,6 @@
   */
 
 #include <ctype.h>
-#include <openssl/md5.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -110,22 +109,6 @@ void url_add(struct minr_job *job)
 }
 
 /**
- * @brief Removes temporary files and directories
- * 
- * @param path string path to be deleted
- */
-void rm_tmpdir(char * path)
-{
-	/* Assemble command */
-	char command[MAX_PATH_LEN] = "\0";
-	sprintf(command, "rm -rf %s", path);
-
-	/* Execute command */
-	FILE *fp = popen(command, "r");
-	pclose(fp);
-}
-
-/**
  * @brief Download a URL for a job
  * 
  * @param job pointer to minr job
@@ -134,13 +117,11 @@ void url_download(struct minr_job *job)
 {
 	bool downloaded = false;
 	char * aux_root_dir = NULL;
-	job->src = calloc(MAX_FILE_SIZE + 1, 1);
-	job->zsrc = calloc((MAX_FILE_SIZE + 1) * 2, 1);
-	job->zsrc_extra = calloc((MAX_FILE_SIZE + 1) * 2, 1);
+	
 	/* Reserve memory for snippet fingerprinting */
 	if (!job->exclude_mz)
 	{
-		wfp_init(NULL);
+//		wfp_init(NULL);
 		/* Reserve memory for mz_cache for mined/sources (65536 files) */
 		job->mz_cache = malloc(MZ_FILES * sizeof(struct mz_cache_item));
 		job->mz_cache_extra = malloc(MZ_FILES * sizeof(struct mz_cache_item));
@@ -182,7 +163,7 @@ void url_download(struct minr_job *job)
 	/*Pivot table will have only one file*/
 	char pivot_path[MAX_PATH_LEN];
 	sprintf(pivot_path, "%s/%s/", job->mined_path, TABLE_NAME_PIVOT);
-	if (create_dir(pivot_path))
+	if (create_dir(pivot_path) && *job->urlid)
 	{
 		strncat(pivot_path, job->urlid, 2);
 		strcat(pivot_path, ".csv");
@@ -243,7 +224,7 @@ void url_download(struct minr_job *job)
 	}
 	else
 	{
-		rm_tmpdir(aux_root_dir);
+		rm_dir(aux_root_dir);
 	}
 
 	free(aux_root_dir);
@@ -279,7 +260,4 @@ void url_download(struct minr_job *job)
 	if (job->mine_all)
 		free(job->out_file_extra);
 
-	free(job->src);
-	free(job->zsrc);
-	free(job->zsrc_extra);
 }

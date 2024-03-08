@@ -30,7 +30,6 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <openssl/md5.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -141,9 +140,6 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);	
 	}
 
-	char *src = calloc(MAX_FILE_SIZE + 1, 1);
-	uint8_t *zsrc = calloc((MAX_FILE_SIZE + 1) * 2, 1);
-
 	struct mz_job job;
 	*job.path = 0;
 	memset(job.mz_id, 0, 2);
@@ -151,9 +147,9 @@ int main(int argc, char *argv[])
 	job.mz_ln = 0;
 	job.id = NULL;
 	job.ln = 0;
-	job.data = src;        // Uncompressed data
+	job.data = NULL;        // Uncompressed data
 	job.data_ln = 0;
-	job.zdata = zsrc;      // Compressed data
+	job.zdata = NULL;      // Compressed data
 	job.zdata_ln = 0;
 	job.ptr = NULL;        // Temporary data
 	job.ptr_ln = 0;
@@ -209,7 +205,7 @@ int main(int argc, char *argv[])
 			case 'c':
 				job.check_only = true;
 				argcpy(job.path, optarg);
-				mz_list(&job);
+				mz_list_check(&job);
 				break;
 
 			case 'x':
@@ -220,12 +216,12 @@ int main(int argc, char *argv[])
 			case 'K':
 				job.dump_keys = true;
 				argcpy(job.path, optarg);
-				mz_list(&job);
+				mz_list_check(&job);
 				break;
 
 			case 'l':
 				argcpy(job.path, optarg);
-				mz_list(&job);
+				mz_list_check(&job);
 				break;
 
 			case 'C':
@@ -267,15 +263,11 @@ int main(int argc, char *argv[])
 				break;
 
 			case 'h':
-				free(src);
-				free(zsrc);
 				help();
 				break;
 
 			case 'v':
 				printf("mz is part of scanoss-minr-%s\n", MINR_VERSION);
-				free(src);
-				free(zsrc);
 				exit(EXIT_SUCCESS);
 				break;
 
@@ -309,13 +301,10 @@ int main(int argc, char *argv[])
 	/* Process -k request */
 	else if (key_provided) mz_cat(&job, key);
 
-	free(src);
-	free(zsrc);
-
 	if (invalid_argument)
 	{
 		printf("Error parsing arguments\n");
 	}
-	
+
 	return exit_status;
 }
